@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -327,6 +328,13 @@ func (a *Autoscaler) calcAgents(ctx context.Context) (float64, error) {
 	return reqPoolAgents, nil
 }
 
+type ReconcileErrorData struct {
+	counter  int
+	lastSeen time.Time
+}
+
+var reconcileErrors = map[string]ReconcileErrorData{}
+
 // Reconcile periodically checks the status of the agent pool and adjusts it to match
 // the desired capacity based on the current queue state.
 func (a *Autoscaler) Reconcile(ctx context.Context) error {
@@ -336,7 +344,35 @@ func (a *Autoscaler) Reconcile(ctx context.Context) error {
 
 	reqPoolAgents, err := a.calcAgents(ctx)
 	if err != nil {
-		return fmt.Errorf("calculating agents failed: %w", err)
+		skip := false
+		for key, e := range reconcileErrors {
+			if e.lastSeen.Add(a.config.ReconcileErrorsTTL).Before(time.Now()) {
+				// remove error from map after TTL has expired
+				delete(reconcileErrors, key)
+			}
+		}
+		reconcileError := fmt.Errorf("calculating agents failed: %w", err)
+		if strings.HasPrefix(reconcileError.Error(), "error from QueueInfo: client error 500: pipeline not found for task") {
+			if _, ok := reconcileErrors[reconcileError.Error()]; !ok {
+				reconcileErrors[reconcileError.Error()] = ReconcileErrorData{
+					counter:  1,
+					lastSeen: time.Now(),
+				}
+			} else {
+				errorData := reconcileErrors[reconcileError.Error()]
+				errorData.counter++
+				errorData.lastSeen = time.Now()
+				reconcileErrors[reconcileError.Error()] = errorData
+				log.Warn().Err(reconcileError).Int("count", errorData.counter).Msg("reconcile error occurred again")
+				if reconcileErrors[reconcileError.Error()].counter >= a.config.MaxReconcileErrors {
+					// we have seen the error to often, we are skipping it for now
+					skip = true
+				}
+			}
+		}
+		if !skip {
+			return reconcileError
+		}
 	}
 
 	if reqPoolAgents > 0 {

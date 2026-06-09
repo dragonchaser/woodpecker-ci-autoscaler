@@ -15,4 +15,6 @@ type Config struct {
 	AgentIdleTimeout       time.Duration
 	UserData               string // cloudinit template
 	ExtraAgentLabels       map[string]string
+	MaxReconcileErrors     int
+	ReconcileErrorsTTL     time.Duration
 }

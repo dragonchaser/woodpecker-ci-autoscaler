@@ -75,16 +75,18 @@ func run(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	config := &config.Config{
-		MinAgents:         cmd.Int("min-agents"),
-		MaxAgents:         cmd.Int("max-agents"),
-		WorkflowsPerAgent: cmd.Int("workflows-per-agent"),
-		PoolID:            cmd.String("pool-id"),
-		GRPCAddress:       cmd.String("grpc-addr"),
-		GRPCSecure:        cmd.Bool("grpc-secure"),
-		Image:             cmd.String("agent-image"),
-		UserData:          cmd.String("cloudinit-template"),
-		ExtraAgentLabels:  agentLabels,
-		Environment:       agentEnvironment,
+		MinAgents:          cmd.Int("min-agents"),
+		MaxAgents:          cmd.Int("max-agents"),
+		WorkflowsPerAgent:  cmd.Int("workflows-per-agent"),
+		PoolID:             cmd.String("pool-id"),
+		GRPCAddress:        cmd.String("grpc-addr"),
+		GRPCSecure:         cmd.Bool("grpc-secure"),
+		Image:              cmd.String("agent-image"),
+		UserData:           cmd.String("cloudinit-template"),
+		MaxReconcileErrors: cmd.Int("max-reconcile-errors"),
+		ReconcileErrorsTTL: cmd.Duration("reconcile-errors-ttl"),
+		ExtraAgentLabels:   agentLabels,
+		Environment:        agentEnvironment,
 	}
 
 	provider, err := setupProvider(ctx, cmd, config)

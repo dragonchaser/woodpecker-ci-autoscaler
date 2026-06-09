@@ -112,4 +112,16 @@ var flags = []cli.Flag{
 		Usage:   "add additional labels the agent will report to the server. list with key=value pairs",
 		Sources: cli.EnvVars("WOODPECKER_AGENT_LABELS"),
 	},
+	&cli.DurationFlag{
+		Name:    "reconcile-errors-ttl",
+		Value:   60 * 1000, // 1 minute
+		Usage:   "duration after which the count of reconcile errors for an agent will be reset to zero as duration string like 2h45m (https://pkg.go.dev/time#ParseDuration)",
+		Sources: cli.EnvVars("WOODPECKER_RECONCILIATION_ERRORS_TTL"),
+	},
+	&cli.IntFlag{
+		Name:    "max-reconcile-errors-count",
+		Value:   3,
+		Usage:   "number of consecutive reconcile errors after which the error will be skipped",
+		Sources: cli.EnvVars("WOODPECKER_MAX_RECONCILIATION_ERRORS_COUNT"),
+	},
 }
